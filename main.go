@@ -74,6 +74,7 @@ func saveHomework(homework *Homework) error {
 
 func getHomeworkHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(&w)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -97,6 +98,7 @@ func getHomeworkHandler(w http.ResponseWriter, r *http.Request) {
 
 func postHomeworkHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(&w)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -133,6 +135,7 @@ func postHomeworkHandler(w http.ResponseWriter, r *http.Request) {
 
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(&w)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -197,6 +200,7 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 func serveFileHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(&w)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
