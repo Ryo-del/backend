@@ -248,7 +248,7 @@ func main() {
 	subjects := []string{
 		"computer_graphics",
 		"bjd",
-		"cp",
+		"com_practicum",
 		"it",
 		"engl113",
 		"engl208",
