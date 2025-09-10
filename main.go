@@ -41,8 +41,8 @@ func enableCORS(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type")
 }
 
-func loadHomework() (*Homework, error) {
-	file, err := os.Open(dataFile)
+func loadHomework(filename string) (*Homework, error) {
+	file, err := os.Open(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &Homework{}, nil
@@ -60,8 +60,8 @@ func loadHomework() (*Homework, error) {
 	return &homework, nil
 }
 
-func saveHomework(homework *Homework) error {
-	file, err := os.Create(dataFile)
+func saveHomework(filename string, homework *Homework) error {
+	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
@@ -72,9 +72,8 @@ func saveHomework(homework *Homework) error {
 	return encoder.Encode(homework)
 }
 
-func getHomeworkHandler(w http.ResponseWriter, r *http.Request) {
+func getHomeworkHandler(w http.ResponseWriter, r *http.Request, filename string) {
 	enableCORS(&w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -86,7 +85,7 @@ func getHomeworkHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	homework, err := loadHomework()
+	homework, err := loadHomework(filename)
 	if err != nil {
 		http.Error(w, "Error loading homework", http.StatusInternalServerError)
 		return
@@ -96,9 +95,8 @@ func getHomeworkHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(homework)
 }
 
-func postHomeworkHandler(w http.ResponseWriter, r *http.Request) {
+func postHomeworkHandler(w http.ResponseWriter, r *http.Request, filename string) {
 	enableCORS(&w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -123,7 +121,7 @@ func postHomeworkHandler(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: req.UpdatedAt,
 	}
 
-	err = saveHomework(&homework)
+	err = saveHomework(filename, &homework)
 	if err != nil {
 		http.Error(w, "Error saving homework", http.StatusInternalServerError)
 		return
@@ -135,7 +133,6 @@ func postHomeworkHandler(w http.ResponseWriter, r *http.Request) {
 
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(&w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -200,7 +197,6 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 func serveFileHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(&w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -231,20 +227,38 @@ func main() {
 	// Create uploads directory if it doesn't exist
 	os.MkdirAll("uploads", os.ModePerm)
 
-	// Set up routes
-	http.HandleFunc("/api/homework/computer_graphics", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "GET":
-			getHomeworkHandler(w, r)
-		case "POST":
-			postHomeworkHandler(w, r)
-		case "OPTIONS":
-			enableCORS(&w)
-			w.WriteHeader(http.StatusOK)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	// Set up routes for all subjects
+	subjects := []string{
+		"computer_graphics",
+		"bjd",
+		"cp",
+		"it",
+		"engl113",
+		"engl208",
+		"math",
+		"oap",
+		"oss",
+		"ofg",
+		"op1c",
+	}
+	for _, subject := range subjects {
+		http.HandleFunc("/api/homework/"+subject, func(subject string) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				filename := subject + ".json"
+				switch r.Method {
+				case "GET":
+					getHomeworkHandler(w, r, filename)
+				case "POST":
+					postHomeworkHandler(w, r, filename)
+				case "OPTIONS":
+					enableCORS(&w)
+					w.WriteHeader(http.StatusOK)
+				default:
+					http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				}
+			}
+		}(subject))
+	}
 
 	http.HandleFunc("/api/upload", uploadFileHandler)
 	http.HandleFunc("/uploads/", serveFileHandler)
