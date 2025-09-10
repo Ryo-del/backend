@@ -19,7 +19,7 @@ type Homework struct {
 }
 
 type File struct {
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"` // omitempty - скрываем имя файла
 	Type string `json:"type"`
 	URL  string `json:"url"`
 }
@@ -41,6 +41,17 @@ func enableCORS(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type")
 }
 
+// Функция для преобразования формата даты
+func formatDateTime(isoTime string) string {
+	t, err := time.Parse(time.RFC3339, isoTime)
+	if err != nil {
+		return isoTime // возвращаем оригинальную строку при ошибке
+	}
+
+	// Форматируем в нужный формат: 2025-09-09 14:50
+	return t.Format("2006-01-02 15:04")
+}
+
 func loadHomework(filename string) (*Homework, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -57,6 +68,10 @@ func loadHomework(filename string) (*Homework, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Преобразуем формат даты при загрузке
+	homework.UpdatedAt = formatDateTime(homework.UpdatedAt)
+
 	return &homework, nil
 }
 
@@ -114,6 +129,9 @@ func postHomeworkHandler(w http.ResponseWriter, r *http.Request, filename string
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
+
+	// Преобразуем дату перед сохранением
+	req.UpdatedAt = formatDateTime(req.UpdatedAt)
 
 	homework := Homework{
 		Text:      req.Text,
@@ -184,11 +202,10 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return file info
-	response := map[string]string{
-		"name": header.Filename,
-		"type": header.Header.Get("Content-Type"),
-		"url":  "/uploads/" + filename,
+	// Return file info (без имени файла)
+	response := File{
+		Type: header.Header.Get("Content-Type"),
+		URL:  "/uploads/" + filename,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
